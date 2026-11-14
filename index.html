@@ -26,11 +26,12 @@
     </section>
     <section id="timeline-section" class="chapter">
       <div class="chapter-head"><div><span class="chapter-number">01</span><h2>历史是怎样展开的？</h2></div><p>四项宏观指标共享时间范围。蓝色与红色任期带分别代表民主党和共和党，灰色表示 NBER 衰退。</p></div>
-      <div id="president-strip" class="president-strip" aria-label="总统任期时间带"></div>
-      <div class="time-controls" aria-label="时间范围">
-        <label><span>起始季度</span><strong id="start-label"></strong><input id="start-range" type="range"></label>
-        <label><span>结束季度</span><strong id="end-label"></strong><input id="end-range" type="range"></label>
-        <button id="reset-time" type="button">恢复完整时期</button>
+      <div class="time-navigator">
+        <div class="time-canvas">
+          <div id="president-strip" class="president-strip" aria-label="总统任期时间带"></div>
+          <div class="range-track"><div class="range-base"></div><div id="range-selected"></div><input id="start-range" type="range" aria-label="起始季度"><input id="end-range" type="range" aria-label="结束季度"></div>
+        </div>
+        <div class="range-caption"><span><strong id="start-label"></strong> — <strong id="end-label"></strong></span><button id="reset-time" type="button">恢复完整时期</button></div>
       </div>
       <p id="timeline-status" class="status" aria-live="polite"></p><div id="timeline" class="chart"></div>
     </section>
