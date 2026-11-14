@@ -11,6 +11,7 @@
   <script defer src="vendor/vega-lite.min.js"></script>
   <script defer src="vendor/vega-embed.min.js"></script>
   <script defer src="charts.js"></script>
+  <script defer src="ranking.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -52,8 +53,8 @@
       <p id="profile-note" class="status"></p><div id="profile-chart" class="chart statistical-chart"></div>
     </section>
     <section id="ranking-section" class="chapter">
-      <div class="chapter-head"><div><span class="chapter-number">03</span><h2>换一个指标，排名会怎样变化？</h2></div><p>排名沿用上方党派和总统筛选。切换指标后重新排序；支持率和衰退指标同时标注样本覆盖。</p></div>
-      <div class="ranking-controls"><label>排名指标<select id="ranking-metric"></select></label><label>排序方向<select id="ranking-direction"><option value="desc">数值高到低</option><option value="asc">数值低到高</option></select></label></div>
+      <div class="chapter-head"><div><span class="chapter-number">03</span><h2>换一个指标，排名会怎样变化？</h2></div><p>每根轴代表一个指标，第1名在最上方。沿用上方总统与党派筛选。</p></div>
+      <div id="ranking-metrics" class="ranking-controls" aria-label="选择排名指标"></div>
       <p id="ranking-note" class="status"></p><div id="ranking" class="chart"></div>
     </section>
     <details class="methods">

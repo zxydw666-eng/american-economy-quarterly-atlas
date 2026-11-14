@@ -24,6 +24,7 @@
 .range-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;color:var(--ink)}
 @media(max-width:760px){.time-navigator{overflow-x:auto}.time-canvas{min-width:1000px}.range-caption{position:sticky;left:0}.time-canvas .president-tile small{font-size:9px}}
 .chart { width: 100%; }
+.rank-legend{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.rank-legend button{font-size:12px;border-left:5px solid var(--legend-color);padding:6px 9px}.rank-tooltip{position:sticky;bottom:12px;background:#173345;border:1px solid #78909d;border-radius:4px;padding:12px;color:#fff;min-height:48px}#ranking-metrics label{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--line);border-radius:4px}#ranking-metrics input{accent-color:var(--teal)}#ranking-metrics select{padding:3px;font-size:11px}
 
 .metric-control {
   display: grid;
