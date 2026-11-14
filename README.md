@@ -1,6 +1,6 @@
 # 总统任期与美国经济
 
-这是一个研究型交互可视化项目，覆盖 1948 Q1 至 2026 Q3。页面使用三层结构回答不同问题：连续时间图解释历史背景，箱线图比较总统任内季度分布，单项排名展示更换评价维度后排序如何变化。
+这是一个研究型交互可视化项目，覆盖 1948 Q1 至 2026 Q3。页面使用四个模块回答不同问题：连续时间图解释历史背景，箱线图比较总统任内季度分布，单项排名展示更换评价维度后排序如何变化，任期聚类比较多指标经济画像。
 
 ## 指标与口径
 
@@ -43,3 +43,7 @@
 - [Gallup Presidential Job Approval Center](https://news.gallup.com/interactives/507569/presidential-job-approval-center.aspx)
 - [NBER Business Cycle Expansions and Contractions](https://www.nber.org/research/data/us-business-cycle-expansions-and-contractions)
 - [总统任期与衰退日期说明](data/history.md)
+
+## 模块 04
+
+在仓库根目录运行 `python build_clusters.py` 可从季度快照重建 `data/clusters.json`（NumPy、SciPy、scikit-learn、threadpoolctl）。主分析对各指标有效季度等权平均，再按任期进行总体标准差 Z 标准化。Ward 使用欧氏距离，K-means 使用固定种子 42、50 次初始化。两种算法均比较 K=2、3、4。留一检验每次重新标准化与拟合。党派只用于事后列联表与 ARI。模块使用完整历史样本，独立于其他图表的筛选器。离线单文件为此前的三模块版本。
