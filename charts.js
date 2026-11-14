@@ -2,10 +2,11 @@
   const config={background:'transparent',view:{stroke:null},axis:{labelColor:'#9fb2bd',titleColor:'#c6d4db',domainColor:'#3b5363',tickColor:'#3b5363',gridColor:'#203747',labelFont:'DM Sans',titleFont:'DM Sans'},title:{color:'#eaf1f4',font:'Noto Serif SC',anchor:'start',fontSize:14}};
   const timelineMeta={gdp:{label:'实际 GDP 同比增长率',color:'#67d3bd'},unemployment:{label:'失业率',color:'#79aee9'},inflation:{label:'CPI 同比通胀率',color:'#efa86e'},rate:{label:'有效联邦基金利率',color:'#b7a2ed'}};
   let timelineView=null,distributionView=null,rankingView=null;
+  const chartPlotWidth=host=>Math.max(660,host.clientWidth-24);
   const quantile=(sorted,p)=>{const position=(sorted.length-1)*p,base=Math.floor(position),rest=position-base;return sorted[base+1]===undefined?sorted[base]:sorted[base]+rest*(sorted[base+1]-sorted[base])};
   window.drawTimeline=async function(rows,history){
     timelineView?.finalize();timelineView=null;const host=document.getElementById('timeline');host.replaceChildren();if(!rows.length){host.textContent='所选时期没有数据。';return}
-    const start=rows[0].date,last=new Date(rows.at(-1).date+'T00:00:00Z');last.setUTCMonth(last.getUTCMonth()+3);const end=last.toISOString().slice(0,10),width=Math.max(660,document.querySelector('main').clientWidth-200);
+    const start=rows[0].date,last=new Date(rows.at(-1).date+'T00:00:00Z');last.setUTCMonth(last.getUTCMonth()+3);const end=last.toISOString().slice(0,10),width=chartPlotWidth(host);
     const x=field=>({field,type:'temporal',scale:{type:'utc'},axis:{title:null,format:'%Y',tickCount:8,grid:false}});
     const bands=history.bands.filter(b=>b.start<end&&(!b.end||b.end>start)).map(b=>({start:b.start<start?start:b.start,end:!b.end||b.end>end?end:b.end,party:b.party}));
     const recessions=history.recessions.filter(r=>r.start<end&&r.end>start).map(r=>({start:r.start<start?start:r.start,end:r.end>end?end:r.end}));
@@ -27,7 +28,7 @@
       for(const value of values.filter(v=>v<lower||v>upper))outliers.push({admin:stat.admin,party:stat.party,value});
     }
     if(!summaries.length){host.innerHTML='<div class="empty-state">当前选择没有该指标的有效季度数据。</div>';return}
-    const order=summaries.map(d=>d.admin),width=Math.max(660,document.querySelector('main').clientWidth-200),color={field:'party',type:'nominal',scale:{domain:['民主党','共和党'],range:['#63a8ec','#ed8279']},legend:null},y={field:'admin',type:'nominal',sort:order,title:null,axis:{labelLimit:175,labelPadding:10}},tooltip=[{field:'admin',title:'总统'},{field:'n',title:'有效季度数'},{field:'min',title:'最小值',format:'.2f'},{field:'q1',title:'第25百分位',format:'.2f'},{field:'median',title:'中位数',format:'.2f'},{field:'mean',title:'平均值',format:'.2f'},{field:'q3',title:'第75百分位',format:'.2f'},{field:'max',title:'最大值',format:'.2f'}];
+    const order=summaries.map(d=>d.admin),width=chartPlotWidth(host),color={field:'party',type:'nominal',scale:{domain:['民主党','共和党'],range:['#63a8ec','#ed8279']},legend:null},y={field:'admin',type:'nominal',sort:order,title:null,axis:{labelLimit:175,labelPadding:10}},tooltip=[{field:'admin',title:'总统'},{field:'n',title:'有效季度数'},{field:'min',title:'最小值',format:'.2f'},{field:'q1',title:'第25百分位',format:'.2f'},{field:'median',title:'中位数',format:'.2f'},{field:'mean',title:'平均值',format:'.2f'},{field:'q3',title:'第75百分位',format:'.2f'},{field:'max',title:'最大值',format:'.2f'}];
     const spec={width,height:{step:43},layer:[
       {data:{values:summaries},mark:{type:'rule',strokeWidth:2},encoding:{y,x:{field:'whiskerLow',type:'quantitative',title:meta.axis},x2:{field:'whiskerHigh'},color,opacity:{condition:{test:'datum.partial',value:.48},value:.9},tooltip}},
       {data:{values:summaries},mark:{type:'bar',height:20,cornerRadius:2},encoding:{y,x:{field:'q1',type:'quantitative',title:meta.axis},x2:{field:'q3'},color,opacity:{condition:{test:'datum.partial',value:.48},value:.78},tooltip}},
@@ -39,7 +40,7 @@
   };
   window.drawRanking=async function(data,metric,direction,meta){
     rankingView?.finalize();rankingView=null;const host=document.getElementById('ranking');host.replaceChildren();const valid=data.filter(d=>Number.isFinite(d[metric]));if(!valid.length){host.textContent='当前筛选没有该指标的数据。';return}
-    const sorted=[...valid].sort((a,b)=>direction==='desc'?b[metric]-a[metric]:a[metric]-b[metric]);const values=sorted.map((d,i)=>({...d,rank:i+1,value:d[metric],display:meta.format(d[metric]),coverage:meta.coverage?meta.coverage(d):'',metricPartial:metric==='approval'?d.approvalPartial:d.partial}));const width=Math.max(660,document.querySelector('main').clientWidth-200);
+    const sorted=[...valid].sort((a,b)=>direction==='desc'?b[metric]-a[metric]:a[metric]-b[metric]);const values=sorted.map((d,i)=>({...d,rank:i+1,value:d[metric],display:meta.format(d[metric]),coverage:meta.coverage?meta.coverage(d):'',metricPartial:metric==='approval'?d.approvalPartial:d.partial}));const width=chartPlotWidth(host);
     const spec={data:{values},width,height:{step:35},encoding:{y:{field:'admin',type:'nominal',sort:sorted.map(d=>d.admin),title:null,axis:{labelLimit:170}},tooltip:[{field:'rank',title:'名次'},{field:'admin',title:'总统'},{field:'display',title:meta.label},{field:'coverage',title:'覆盖'}]},layer:[
       {mark:{type:'bar',height:17,cornerRadiusEnd:2},encoding:{x:{field:'value',type:'quantitative',title:meta.axis,scale:{zero:meta.zero??false}},color:{field:'party',scale:{domain:['民主党','共和党'],range:['#63a8ec','#ed8279']},legend:null},opacity:{condition:{test:'datum.metricPartial',value:.55},value:.9}}},
       {mark:{type:'text',align:'left',dx:6,color:'#edf3f5',fontWeight:600},encoding:{x:{field:'value',type:'quantitative'},text:{field:'display'}}}
