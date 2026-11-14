@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>总统任期与美国经济｜1948—2026</title>
+  <title>美国总统任期与党派视角下的经济表现比较图</title>
   <meta name="description" content="以连续时间、任期画像和单项排名，比较1948年以来美国总统任内的经济表现、公众支持率与衰退经历。">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="stats.css">
@@ -16,17 +16,17 @@
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="#top">ECONOMIC RECORD</a>
-    <nav aria-label="页面导航"><a href="#timeline-section">历史走势</a><a href="#profiles-section">总统画像</a><a href="#ranking-section">指标排名</a></nav>
+    <a class="brand" href="#top">任期与党派比较</a>
+    <nav aria-label="页面导航"><a href="#timeline-section">经济历史演变</a><a href="#profiles-section">总统任期比较</a><a href="#ranking-section">多维指标排序</a></nav>
   </header>
   <main id="top">
     <section class="hero">
       <p class="eyebrow">美国 · 1948 Q1—2026 Q3</p>
-      <h1>总统任期与<br><em>美国经济</em></h1>
-      <p class="hero-copy">不同总统任内，增长、就业、物价、利率、公众认可与经济衰退呈现出哪些组合？</p>
+      <h1>美国总统任期与党派视角下的<br><em>经济表现比较图</em></h1>
+      <p class="hero-copy">1948年以来宏观经济指标、总统工作认可率与经济衰退的历史比较</p>
     </section>
     <section id="timeline-section" class="chapter">
-      <div class="chapter-head"><div><span class="chapter-number">01</span><h2>历史是怎样展开的？</h2></div><p>四项宏观指标共享时间范围。蓝色与红色任期带分别代表民主党和共和党，灰色表示 NBER 衰退。</p></div>
+      <div class="chapter-head"><div><span class="chapter-number">01</span><h2>宏观经济指标的历史演变与总统任期背景</h2></div><p>展示1948年以来美国实际GDP同比增长率、失业率、CPI同比通胀率和联邦基金有效利率的季度变化。通过总统任期及所属党派的时间区间标记，结合NBER公布的经济衰退时期，观察宏观经济指标在不同历史阶段的变化特征。</p></div>
       <div class="time-navigator">
         <div class="time-canvas">
           <div id="president-strip" class="president-strip" aria-label="总统任期时间带"></div>
@@ -37,7 +37,7 @@
       <p id="timeline-status" class="status" aria-live="polite"></p><div id="timeline" class="chart"></div>
     </section>
     <section id="profiles-section" class="chapter">
-      <div class="chapter-head"><div><span class="chapter-number">02</span><h2>任期内的季度表现如何分布？</h2></div><p>用标准箱线图比较总统任内各季度的分布，而不只比较一个平均数。平均值以菱形叠加，便于同时观察水平、波动与极端季度。</p></div>
+      <div class="chapter-head"><div><span class="chapter-number">02</span><h2>不同总统任期内宏观经济指标的分布比较</h2></div><p>以总统任期为基本比较单位，利用箱线图展示各任期内宏观经济指标的季度分布，包括中位数、四分位距、平均值及离群季度。支持按民主党和共和党筛选，以考察不同总统任期及党派分组下的指标分布差异。</p></div>
       <div class="filter-row">
         <div class="profile-controls">
           <div class="segmented" role="group" aria-label="按党派筛选">
@@ -53,7 +53,7 @@
       <p id="profile-note" class="status"></p><div id="profile-chart" class="chart statistical-chart"></div>
     </section>
     <section id="ranking-section" class="chapter">
-      <div class="chapter-head"><div><span class="chapter-number">03</span><h2>换一个指标，排名会怎样变化？</h2></div><p>每根轴代表一个指标，第1名在最上方。沿用上方总统与党派筛选。</p></div>
+      <div class="chapter-head"><div><span class="chapter-number">03</span><h2>总统任期的多维指标排序比较</h2></div><p>从宏观经济指标、总统工作认可率及经济衰退特征等维度，展示不同总统任期的相对排序。用户可以观察各项指标下总统任期的相对位置及其差异。各指标独立排序，不构成对总统整体施政表现的综合评分。</p></div>
       <div id="ranking-metrics" class="ranking-controls" aria-label="选择排名指标"></div>
       <p id="ranking-note" class="status"></p><div id="ranking" class="chart"></div>
     </section>
