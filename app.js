@@ -1,19 +1,42 @@
-const names={gdp:"Real GDP growth",unemployment:"Unemployment rate",inflation:"CPI inflation",rate:"Federal funds rate"};
-const el=id=>document.getElementById(id);
-const quarter=date=>date.slice(0,4)+" Q"+(1+Math.floor((Number(date.slice(5,7))-1)/3));
-async function load(path){const response=await fetch(path);if(!response.ok)throw Error(path+" unavailable");return response.json()}
-async function init(){
- const [records,history]=await Promise.all([load("data/quarters.json"),load("data/history.json")]);
- const rows=records.map(row=>{const last=new Date(row.date+"T00:00:00Z");last.setUTCMonth(last.getUTCMonth()+3,0);const day=last.toISOString().slice(0,10);return {...row,admin:history.bands.find(b=>b.start<=day&&(!b.end||b.end>day)).label}});
- for(const id of ["start","end"])for(const row of rows)el(id).add(new Option(quarter(row.date),row.date));
- for(const band of history.bands)el("president").add(new Option(band.label,band.label));
- for(const id of ["indicator","x","y"])for(const [key,title] of Object.entries(names))el(id).add(new Option(title,key));
- function defaults(){el("president").value="";el("start").selectedIndex=0;el("end").selectedIndex=rows.length-1;el("indicator").value="gdp";el("x").value="unemployment";el("y").value="inflation"}
- async function update(event){if(el("start").value>el("end").value){const other=event?.target.id==="end"?"start":"end";el(other).value=event.target.value}
- const visible=rows.filter(r=>r.date>=el("start").value&&r.date<=el("end").value&&(!el("president").value||r.admin===el("president").value));
- el("status").textContent=visible.length?visible.length+" quarters · "+quarter(visible[0].date)+" – "+quarter(visible.at(-1).date):"No quarters match these filters.";
- if(!visible.length){for(const id of ["timeline","comparison","scatter"])el(id).replaceChildren();return}
- try{await draw(visible,{...history,indicator:el("indicator").value,x:el("x").value,y:el("y").value})}catch(e){el("status").textContent="Chart unavailable: "+e.message}}
- defaults();document.querySelectorAll("select").forEach(s=>s.onchange=update);el("reset").onclick=()=>{defaults();update()};await update()
+const $=id=>document.getElementById(id);
+const quarter=date=>date.slice(0,4)+' Q'+(Math.floor((Number(date.slice(5,7))-1)/3)+1);
+const fmt=(value,digits=1)=>Number.isFinite(value)?value.toFixed(digits):'—';
+const DEMOCRATS=new Set(['Harry S. Truman','John F. Kennedy','Lyndon B. Johnson','Jimmy Carter','Bill Clinton','Barack Obama','Joe Biden']);
+const WIKI={'Harry S. Truman':'Harry_S._Truman','Dwight D. Eisenhower':'Dwight_D._Eisenhower','John F. Kennedy':'John_F._Kennedy','Lyndon B. Johnson':'Lyndon_B._Johnson','Richard Nixon':'Richard_Nixon','Gerald Ford':'Gerald_Ford','Jimmy Carter':'Jimmy_Carter','Ronald Reagan':'Ronald_Reagan','George H. W. Bush':'George_H._W._Bush','Bill Clinton':'Bill_Clinton','George W. Bush':'George_W._Bush','Barack Obama':'Barack_Obama','Donald Trump I':'Donald_Trump','Joe Biden':'Joe_Biden','Donald Trump II':'Donald_Trump'};
+const METRICS={
+  gdp:{label:'平均 GDP 同比增长',short:'GDP 增长',direction:'desc',format:v=>fmt(v,2)+'%',coverage:d=>d.quarters+' 个季度'},unemployment:{label:'平均失业率',short:'失业率',direction:'asc',format:v=>fmt(v,2)+'%',coverage:d=>d.quarters+' 个季度'},inflation:{label:'平均 CPI 同比通胀率',short:'通胀率',direction:'asc',format:v=>fmt(v,2)+'%',coverage:d=>d.quarters+' 个季度'},rate:{label:'平均联邦基金利率',short:'政策利率',direction:'asc',format:v=>fmt(v,2)+'%',coverage:d=>d.rateQuarters+' 个有效季度'},approval:{label:'平均公众支持率',short:'支持率',direction:'desc',format:v=>fmt(v,1)+'%',coverage:d=>d.approvalPartial?'截至 2025 年末':'Gallup 全任期平均'},recessionShare:{label:'任内衰退月份占比',short:'衰退月份',direction:'asc',format:v=>fmt(v,1)+'%',coverage:d=>d.months+' 个观察月'},recessionRate:{label:'每四年新发生衰退',short:'衰退频率',direction:'asc',format:v=>fmt(v,2)+' 次',coverage:d=>d.newRecessions+' 次 / '+d.months+' 月'}
+};
+const DISTRIBUTION_METRICS=['gdp','unemployment','inflation','rate'];
+async function load(path){const response=await fetch(path);if(!response.ok)throw new Error(path+' 加载失败');return response.json()}
+function party(admin){return DEMOCRATS.has(admin)?'民主党':'共和党'}
+function initials(name){return name.replace(/\b(S\.|F\.|B\.|H\.|W\.|J\.|I{1,2})\b/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('')}
+function monthStart(date){return date.slice(0,7)+'-01'}
+function addMonth(date){const d=new Date(date+'T00:00:00Z');d.setUTCMonth(d.getUTCMonth()+1);return d.toISOString().slice(0,10)}
+function endOfQuarter(date){const d=new Date(date+'T00:00:00Z');d.setUTCMonth(d.getUTCMonth()+3,0);return d.toISOString().slice(0,10)}
+function buildAdminStats(rows,history,approvalData){
+  const coverageStart=rows[0].date,coverageEnd=addMonth(addMonth(addMonth(rows.at(-1).date)));
+  return history.bands.map((band,index)=>{
+    const observedStart=band.start<coverageStart?coverageStart:monthStart(band.start),observedEnd=!band.end||band.end>coverageEnd?coverageEnd:monthStart(band.end),q=rows.filter(r=>r.admin===band.label);
+    const average=key=>{const v=q.map(r=>r[key]).filter(Number.isFinite);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};let months=0,recessionMonths=0,newRecessions=0;
+    for(let cursor=observedStart;cursor<observedEnd;cursor=addMonth(cursor)){months++;const recession=history.recessions.find(r=>r.start<=cursor&&cursor<r.end);if(recession)recessionMonths++;if(recession?.start===cursor)newRecessions++}
+    const approval=approvalData.records.find(record=>record.label===band.label);
+    return {admin:band.label,party:party(band.label),start:band.start,end:band.end,index,gdp:average('gdp'),unemployment:average('unemployment'),inflation:average('inflation'),rate:average('rate'),approval:approval?.average??null,approvalPartial:approval?.status==='partial',recessionShare:months?100*recessionMonths/months:null,recessionRate:months?48*newRecessions/months:null,newRecessions,recessionMonths,months,quarters:q.length,rateQuarters:q.filter(r=>Number.isFinite(r.rate)).length,partial:band.start<coverageStart||!band.end||band.end>coverageEnd};
+  });
 }
-init().catch(e=>el("status").textContent="Unable to load local observations. Serve this directory over HTTP. "+e.message);
+function attachPortrait(container,admin,className=''){
+  const fallback=document.createElement('span');fallback.className='portrait-fallback '+className;fallback.textContent=initials(admin);container.append(fallback);
+  const img=document.createElement('img');img.src='portraits/'+WIKI[admin]+'.jpg';img.alt=admin;img.className=className;img.onload=()=>fallback.replaceWith(img);img.onerror=()=>{img.onerror=null;fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+WIKI[admin]).then(r=>r.json()).then(data=>{if(data.thumbnail)img.src=data.thumbnail.source}).catch(()=>{})};
+}
+function renderStrip(history,stats){const host=$('president-strip');host.replaceChildren();for(const band of history.bands){const stat=stats.find(s=>s.admin===band.label),tile=document.createElement('div');tile.className='president-tile';tile.style.setProperty('--party',stat.party==='民主党'?'var(--dem)':'var(--rep)');tile.style.setProperty('--months',Math.max(stat.months,12));tile.title=band.label+' · '+stat.party+' · '+band.start+'—'+(band.end||'至今');attachPortrait(tile,band.label);const caption=document.createElement('small');caption.innerHTML='<b>'+band.label+'</b><br><span>'+stat.party+'</span>';tile.append(caption);host.append(tile)}}
+async function init(){
+  const [raw,history,approvalData]=await Promise.all([load('data/quarters.json'),load('data/history.json'),load('data/approval.json')]);history.bands=history.bands.map(b=>({...b,party:party(b.label)}));const rows=raw.map(row=>{const day=endOfQuarter(row.date),admin=history.bands.find(b=>b.start<=day&&(!b.end||day<b.end)).label;return{...row,admin,party:party(admin)}}),stats=buildAdminStats(rows,history,approvalData);renderStrip(history,stats);
+  const start=$('start-range'),end=$('end-range');start.min=end.min=0;start.max=end.max=rows.length-1;start.value=0;end.value=rows.length-1;
+  async function updateTimeline(changed){if(Number(start.value)>Number(end.value)){if(changed===start)end.value=start.value;else start.value=end.value}const visible=rows.slice(Number(start.value),Number(end.value)+1);$('start-label').textContent=quarter(visible[0].date);$('end-label').textContent=quarter(visible.at(-1).date);$('timeline-status').textContent=visible.length+' 个季度 · '+quarter(visible[0].date)+'—'+quarter(visible.at(-1).date);await drawTimeline(visible,history)}
+  start.oninput=()=>updateTimeline(start);end.oninput=()=>updateTimeline(end);$('reset-time').onclick=()=>{start.value=0;end.value=rows.length-1;updateTimeline()};
+  let partyFilter='全部';const selected=new Set(stats.map(s=>s.admin));for(const stat of stats){const label=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.checked=true;box.value=stat.admin;box.dataset.party=stat.party;box.onchange=()=>{box.checked?selected.add(box.value):selected.delete(box.value);updateComparison()};label.append(box,stat.admin);$('president-options').append(label)}
+  const boxes=()=>[...$('president-options').querySelectorAll('input')],allowed=stat=>partyFilter==='全部'||stat.party===partyFilter,updatePickerVisibility=()=>{for(const box of boxes())box.parentElement.hidden=partyFilter!=='全部'&&box.dataset.party!==partyFilter},currentSelection=()=>new Set([...selected].filter(name=>allowed(stats.find(s=>s.admin===name))));
+  async function updateComparison(){const current=currentSelection(),profileMetric=$('profile-metric').value,profileMeta=METRICS[profileMetric];$('president-picker-label').textContent='选择总统 · '+current.size+' 位';$('profile-note').textContent=profileMeta.short+'的任内季度分布；须线采用 Tukey 1.5×IQR 规则。Truman 与 Donald Trump II 的不完整经济覆盖以较浅颜色表示。';const metric=$('ranking-metric').value,direction=$('ranking-direction').value,meta=METRICS[metric];$('ranking-note').textContent=meta.label+' · '+(direction==='desc'?'数值高到低':'数值低到高')+'。不同单位不合成为总分。';await Promise.all([drawDistribution(rows.filter(r=>current.has(r.admin)),stats.filter(s=>current.has(s.admin)),profileMetric,{...profileMeta,axis:profileMeta.short+'（%）'}),drawRanking(stats.filter(s=>current.has(s.admin)),metric,direction,{...meta,axis:meta.label,zero:metric==='recessionShare'||metric==='recessionRate'})])}
+  for(const button of document.querySelectorAll('.party-button'))button.onclick=()=>{partyFilter=button.dataset.party;document.querySelectorAll('.party-button').forEach(b=>b.classList.toggle('active',b===button));updatePickerVisibility();updateComparison()};$('select-visible').onclick=()=>{for(const box of boxes())if(!box.parentElement.hidden){box.checked=true;selected.add(box.value)}updateComparison()};$('clear-presidents').onclick=()=>{for(const box of boxes())if(!box.parentElement.hidden){box.checked=false;selected.delete(box.value)}updateComparison()};
+  for(const key of DISTRIBUTION_METRICS)$('profile-metric').add(new Option(METRICS[key].short,key));$('profile-metric').value='gdp';$('profile-metric').onchange=updateComparison;for(const [key,meta] of Object.entries(METRICS))$('ranking-metric').add(new Option(meta.label,key));$('ranking-metric').value='gdp';$('ranking-direction').value=METRICS.gdp.direction;$('ranking-metric').onchange=()=>{$('ranking-direction').value=METRICS[$('ranking-metric').value].direction;updateComparison()};$('ranking-direction').onchange=updateComparison;await Promise.all([updateTimeline(),updateComparison()]);
+}
+init().catch(error=>{console.error(error);$('timeline-status').textContent='页面加载失败：'+error.message});

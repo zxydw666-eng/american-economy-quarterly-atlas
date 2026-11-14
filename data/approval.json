@@ -1,0 +1,22 @@
+{
+  "definition": "Gallup average presidential job approval among U.S. adults",
+  "source": "https://news.gallup.com/interactives/507569/presidential-job-approval-center.aspx",
+  "retrieved": "2026-11-14",
+  "records": [
+    {"label":"Harry S. Truman","average":45.4,"status":"complete"},
+    {"label":"Dwight D. Eisenhower","average":65.0,"status":"complete"},
+    {"label":"John F. Kennedy","average":70.1,"status":"complete"},
+    {"label":"Lyndon B. Johnson","average":55.1,"status":"complete"},
+    {"label":"Richard Nixon","average":49.0,"status":"complete"},
+    {"label":"Gerald Ford","average":47.2,"status":"complete"},
+    {"label":"Jimmy Carter","average":45.5,"status":"complete"},
+    {"label":"Ronald Reagan","average":52.8,"status":"complete"},
+    {"label":"George H. W. Bush","average":60.9,"status":"complete"},
+    {"label":"Bill Clinton","average":55.1,"status":"complete"},
+    {"label":"George W. Bush","average":49.4,"status":"complete"},
+    {"label":"Barack Obama","average":47.9,"status":"complete"},
+    {"label":"Donald Trump I","average":41.1,"status":"complete"},
+    {"label":"Joe Biden","average":42.2,"status":"complete"},
+    {"label":"Donald Trump II","average":41.0,"status":"partial","coverage":"2025"}
+  ]
+}

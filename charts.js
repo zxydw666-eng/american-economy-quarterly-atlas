@@ -1,56 +1,49 @@
-(function () {
-  const names = {gdp:'Real GDP growth', unemployment:'Unemployment', inflation:'CPI inflation', rate:'Federal funds rate'};
-  const colors = {gdp:'#61d5c4',unemployment:'#8eb6ff',inflation:'#ffbc85',rate:'#c1a5ef'};
-  const config = {background:'transparent',view:{stroke:null},axis:{labelColor:'#aebed0',titleColor:'#c4d0dd',domainColor:'#516176',tickColor:'#516176',gridColor:'#283a50',labelFontSize:11,titleFontSize:12},title:{color:'#e2eaf2',anchor:'start',fontSize:14,offset:7}};
-  const metric = key => ({field:key,type:'quantitative',title:names[key]+' (%)',format:'.2f'});
-  let generation = 0, active = [];
-  window.draw = async function draw(rows, s) {
-    const version = ++generation;
-    active.forEach(view => view.finalize());
-    active = [];
-    const ids = ['timeline','comparison','scatter'];
-    const containers = ids.map(id => document.getElementById(id));
-    containers.forEach(el => el.replaceChildren());
-    if (!rows.length) {containers.forEach(el => el.textContent='No quarters in this selection.'); return;}
-    const data = rows.map(r=>({...r,quarter:r.date.slice(0,4)+' Q'+(1+Math.floor((Number(r.date.slice(5,7))-1)/3))}));
-    const first = data[0].date, last = new Date(data.at(-1).date);
-    last.setUTCMonth(last.getUTCMonth()+3);
-    const end = last.toISOString().slice(0,10);
-    const width = el => Math.max(150,el.clientWidth-70);
-    const date = field => ({field,type:'temporal',scale:{type:'utc',domain:[first,end]},axis:{title:null,format:'%Y',tickCount:6,grid:false}});
-    const rect = (values,color) => ({data:{values:values.filter(d=>d.start<end && (!d.end || d.end>first)).map(d=>({...d,start:d.start<first?first:d.start,end:!d.end||d.end>end?end:d.end}))},mark:{type:'rect',color},encoding:{x:date('start'),x2:{field:'end'},tooltip:{field:'label'}}});
-    const tooltip = [{field:'quarter',title:'Quarter'},{field:'admin',title:'Administration'}];
-    const focus = 'datum.quarter === focusDate';
-    const params = [{name:'focusDate',value:''},{name:'focusAdmin',value:''}];
-    const timeline = {params,vconcat:Object.keys(names).map(k=>({title:names[k]+' · %',width:width(containers[0]),height:90,layer:[
-      rect(s.bands.filter((_,i)=>i%2===0),'#20324a'),rect(s.recessions,'#4c5262'),
-      {data:{values:data},mark:{type:'line',color:colors[k],strokeWidth:2,point:data.length<4},encoding:{x:date('date'),y:{...metric(k),title:null}}},
-      {data:{values:data.filter(d=>d[k]!=null)},mark:{type:'circle',color:'#fff',size:48},encoding:{x:date('date'),y:metric(k),opacity:{condition:{test:focus,value:1},value:0.002},tooltip:[...tooltip,metric(k)]}}
-    ]})),spacing:12};
-    const k=s.indicator;
-    const valid=data.filter(r=>Number.isFinite(r[k]));
-    const admins=[...new Set(valid.map(r=>r.admin))];
-    const summaries=admins.map(admin=>{
-      const values=valid.filter(r=>r.admin===admin).map(r=>r[k]).sort((a,b)=>a-b);
-      const q=p=>{const i=(values.length-1)*p;return values[Math.floor(i)]+(values[Math.ceil(i)]-values[Math.floor(i)])*(i%1)};
-      return {admin,n:values.length,min:values[0],q1:q(.25),median:q(.5),q3:q(.75),max:values.at(-1)};
-    });
-    const x=field=>({field,type:'quantitative',title:names[k]+' (%)',scale:{zero:false}});
-    const summary={params,data:{values:summaries},width:Math.max(100,containers[1].clientWidth-155),height:{step:24},encoding:{y:{field:'admin',type:'nominal',sort:admins,title:null,axis:{labelLimit:145}},tooltip:[{field:'admin'},{field:'n',title:'Observed quarters'},...['min','q1','median','q3','max'].map(field=>({field,type:'quantitative',format:'.2f'}))]},layer:[
-      {mark:{type:'rule',color:'#7898ad'},encoding:{x:x('min'),x2:{field:'max'}}},
-      {mark:{type:'bar',height:13},encoding:{x:x('q1'),x2:{field:'q3'},color:{condition:{test:'datum.admin === focusAdmin',value:'#fff'},value:colors[k]}}},
-      {mark:{type:'tick',color:'#182333',height:16,thickness:2},encoding:{x:x('median')}}
+(function(){
+  const config={background:'transparent',view:{stroke:null},axis:{labelColor:'#9fb2bd',titleColor:'#c6d4db',domainColor:'#3b5363',tickColor:'#3b5363',gridColor:'#203747',labelFont:'DM Sans',titleFont:'DM Sans'},title:{color:'#eaf1f4',font:'Noto Serif SC',anchor:'start',fontSize:14}};
+  const timelineMeta={gdp:{label:'实际 GDP 同比增长率',color:'#67d3bd'},unemployment:{label:'失业率',color:'#79aee9'},inflation:{label:'CPI 同比通胀率',color:'#efa86e'},rate:{label:'有效联邦基金利率',color:'#b7a2ed'}};
+  let timelineView=null,distributionView=null,rankingView=null;
+  const quantile=(sorted,p)=>{const position=(sorted.length-1)*p,base=Math.floor(position),rest=position-base;return sorted[base+1]===undefined?sorted[base]:sorted[base]+rest*(sorted[base+1]-sorted[base])};
+  window.drawTimeline=async function(rows,history){
+    timelineView?.finalize();timelineView=null;const host=document.getElementById('timeline');host.replaceChildren();if(!rows.length){host.textContent='所选时期没有数据。';return}
+    const start=rows[0].date,last=new Date(rows.at(-1).date+'T00:00:00Z');last.setUTCMonth(last.getUTCMonth()+3);const end=last.toISOString().slice(0,10),width=Math.max(660,document.querySelector('main').clientWidth-200);
+    const x=field=>({field,type:'temporal',scale:{type:'utc'},axis:{title:null,format:'%Y',tickCount:8,grid:false}});
+    const bands=history.bands.filter(b=>b.start<end&&(!b.end||b.end>start)).map(b=>({start:b.start<start?start:b.start,end:!b.end||b.end>end?end:b.end,party:b.party}));
+    const recessions=history.recessions.filter(r=>r.start<end&&r.end>start).map(r=>({start:r.start<start?start:r.start,end:r.end>end?end:r.end}));
+    const values=rows.map(r=>({...r,quarter:r.date.slice(0,4)+' Q'+(Math.floor((Number(r.date.slice(5,7))-1)/3)+1)}));
+    const spec={vconcat:Object.entries(timelineMeta).map(([key,meta])=>({title:meta.label+' · %',width,height:100,layer:[
+      {data:{values:bands},mark:{type:'rect',opacity:.13},encoding:{x:x('start'),x2:{field:'end'},color:{field:'party',scale:{domain:['民主党','共和党'],range:['#63a8ec','#ed8279']},legend:null}}},
+      {data:{values:recessions},mark:{type:'rect',color:'#89939b',opacity:.23},encoding:{x:x('start'),x2:{field:'end'}}},
+      {data:{values},mark:{type:'line',strokeWidth:2,color:meta.color,point:{filled:true,size:18,opacity:.001}},encoding:{x:x('date'),y:{field:key,type:'quantitative',title:null,scale:{zero:false}},tooltip:[{field:'quarter',title:'季度'},{field:'admin',title:'总统'},{field:key,title:meta.label,format:'.2f'}]}}
+    ]})),spacing:14,resolve:{scale:{x:'shared'}}};
+    timelineView=(await vegaEmbed(host,{...spec,config},{actions:false,renderer:'svg'})).view;
+  };
+  window.drawDistribution=async function(rows,stats,metric,meta){
+    distributionView?.finalize();distributionView=null;const host=document.getElementById('profile-chart');host.replaceChildren();
+    const summaries=[],outliers=[];
+    for(const stat of stats.sort((a,b)=>a.index-b.index)){
+      const values=rows.filter(r=>r.admin===stat.admin&&Number.isFinite(r[metric])).map(r=>r[metric]).sort((a,b)=>a-b);if(!values.length)continue;
+      const q1=quantile(values,.25),median=quantile(values,.5),q3=quantile(values,.75),iqr=q3-q1,lower=q1-1.5*iqr,upper=q3+1.5*iqr,inside=values.filter(v=>v>=lower&&v<=upper),mean=values.reduce((a,b)=>a+b,0)/values.length;
+      summaries.push({admin:stat.admin,party:stat.party,partial:stat.partial,n:values.length,min:values[0],q1,median,mean,q3,max:values.at(-1),whiskerLow:inside[0],whiskerHigh:inside.at(-1)});
+      for(const value of values.filter(v=>v<lower||v>upper))outliers.push({admin:stat.admin,party:stat.party,value});
+    }
+    if(!summaries.length){host.innerHTML='<div class="empty-state">当前选择没有该指标的有效季度数据。</div>';return}
+    const order=summaries.map(d=>d.admin),width=Math.max(660,document.querySelector('main').clientWidth-200),color={field:'party',type:'nominal',scale:{domain:['民主党','共和党'],range:['#63a8ec','#ed8279']},legend:null},y={field:'admin',type:'nominal',sort:order,title:null,axis:{labelLimit:175,labelPadding:10}},tooltip=[{field:'admin',title:'总统'},{field:'n',title:'有效季度数'},{field:'min',title:'最小值',format:'.2f'},{field:'q1',title:'第25百分位',format:'.2f'},{field:'median',title:'中位数',format:'.2f'},{field:'mean',title:'平均值',format:'.2f'},{field:'q3',title:'第75百分位',format:'.2f'},{field:'max',title:'最大值',format:'.2f'}];
+    const spec={width,height:{step:43},layer:[
+      {data:{values:summaries},mark:{type:'rule',strokeWidth:2},encoding:{y,x:{field:'whiskerLow',type:'quantitative',title:meta.axis},x2:{field:'whiskerHigh'},color,opacity:{condition:{test:'datum.partial',value:.48},value:.9},tooltip}},
+      {data:{values:summaries},mark:{type:'bar',height:20,cornerRadius:2},encoding:{y,x:{field:'q1',type:'quantitative',title:meta.axis},x2:{field:'q3'},color,opacity:{condition:{test:'datum.partial',value:.48},value:.78},tooltip}},
+      {data:{values:summaries},mark:{type:'tick',thickness:3,size:25,color:'#f4f8fa'},encoding:{y,x:{field:'median',type:'quantitative',title:meta.axis},tooltip}},
+      {data:{values:summaries},mark:{type:'point',shape:'diamond',filled:true,size:100,color:'#e7bf66',stroke:'#071622',strokeWidth:1},encoding:{y,x:{field:'mean',type:'quantitative',title:meta.axis},tooltip}},
+      {data:{values:outliers},mark:{type:'point',filled:false,size:45,strokeWidth:1.5},encoding:{y,x:{field:'value',type:'quantitative',title:meta.axis},color,tooltip:[{field:'admin',title:'总统'},{field:'value',title:'离群季度值',format:'.2f'}]}}
     ]};
-    const scatter={params:[...params,{name:'region',select:{type:'interval'}}],data:{values:data.filter(r=>Number.isFinite(r[s.x])&&Number.isFinite(r[s.y]))},width:width(containers[2]),height:270,mark:{type:'circle',size:62},encoding:{x:metric(s.x),y:metric(s.y),color:{condition:{test:focus,value:'#fff'},value:colors[s.y]},opacity:{condition:{param:'region',value:.78},value:.12},tooltip:[...tooltip,metric(s.x),...(s.x===s.y?[]:[metric(s.y)])]}};
-    const views=await Promise.all([timeline,summary,scatter].map(async(spec,i)=>{
-      if(i===1&&!valid.length){containers[i].textContent='No reported observations for this indicator.';return null;}
-      const mount=document.createElement('div');containers[i].appendChild(mount);
-      const {view}=await vegaEmbed(mount,{...spec,config},{actions:false,renderer:'svg'});return view;
-    }));
-    if(version!==generation){views.filter(Boolean).forEach(v=>v.finalize());return;}
-    active=views.filter(Boolean);
-    function highlight(d){for(const v of active)v.signal('focusDate',d?.quarter||'').signal('focusAdmin',d?.admin||'').runAsync();}
-    for(const v of active){v.addEventListener('mouseover',(_,item)=>highlight(item?.datum));v.addEventListener('mouseout',()=>highlight(null));}
+    distributionView=(await vegaEmbed(host,{...spec,config},{actions:false,renderer:'svg'})).view;
+  };
+  window.drawRanking=async function(data,metric,direction,meta){
+    rankingView?.finalize();rankingView=null;const host=document.getElementById('ranking');host.replaceChildren();const valid=data.filter(d=>Number.isFinite(d[metric]));if(!valid.length){host.textContent='当前筛选没有该指标的数据。';return}
+    const sorted=[...valid].sort((a,b)=>direction==='desc'?b[metric]-a[metric]:a[metric]-b[metric]);const values=sorted.map((d,i)=>({...d,rank:i+1,value:d[metric],display:meta.format(d[metric]),coverage:meta.coverage?meta.coverage(d):'',metricPartial:metric==='approval'?d.approvalPartial:d.partial}));const width=Math.max(660,document.querySelector('main').clientWidth-200);
+    const spec={data:{values},width,height:{step:35},encoding:{y:{field:'admin',type:'nominal',sort:sorted.map(d=>d.admin),title:null,axis:{labelLimit:170}},tooltip:[{field:'rank',title:'名次'},{field:'admin',title:'总统'},{field:'display',title:meta.label},{field:'coverage',title:'覆盖'}]},layer:[
+      {mark:{type:'bar',height:17,cornerRadiusEnd:2},encoding:{x:{field:'value',type:'quantitative',title:meta.axis,scale:{zero:meta.zero??false}},color:{field:'party',scale:{domain:['民主党','共和党'],range:['#63a8ec','#ed8279']},legend:null},opacity:{condition:{test:'datum.metricPartial',value:.55},value:.9}}},
+      {mark:{type:'text',align:'left',dx:6,color:'#edf3f5',fontWeight:600},encoding:{x:{field:'value',type:'quantitative'},text:{field:'display'}}}
+    ]};
+    rankingView=(await vegaEmbed(host,{...spec,config},{actions:false,renderer:'svg'})).view;
   };
 })();
-

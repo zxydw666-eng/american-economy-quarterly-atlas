@@ -1,4 +1,70 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The American Economy: Presidents, Policies &amp; Economic Cycles</title><link rel="stylesheet" href="style.css"><script defer src="vendor/vega.min.js"></script><script defer src="vendor/vega-lite.min.js"></script><script defer src="vendor/vega-embed.min.js"></script><script defer src="charts.js"></script><script defer src="app.js"></script></head><body><header><b>ECONOMIC ATLAS</b><nav><a href="#chronology">Chronology</a><a href="#distribution">Administrations</a><a href="#methods">Methods</a></nav></header><main><section class="hero"><div class="eyebrow">UNITED STATES &nbsp; / &nbsp; QUARTERLY RECORD</div><h1>The American Economy<span>Presidents, Policies &amp; Economic Cycles</span></h1><p>Trace output, jobs, prices and interest rates across presidential transitions and recessions.</p></section><section class="filters"><label>Administration<select id="president"><option value="">All administrations</option></select></label><label>From<select id="start"></select></label><label>Through<select id="end"></select></label><button id="reset">Reset filters</button></section><p id="status" role="status">Loading quarterly observations…</p><section id="chronology"><h2>Economic chronology</h2><p>Read vertically to compare the same quarter across all four measures. Alternating navy bands mark administrations. Gray bands show NBER recessions. Hover a point to follow its quarter across views.</p><div id="timeline"></div></section><aside><strong>March–April 2020</strong> · The pandemic recession lasted two months. Its monthly shading occupies only part of the two adjacent quarterly observations.</aside><section id="distribution"><h2>Across administrations</h2><label>Compare distributions<select id="indicator"></select></label><p>Boxes span the middle half of observed quarters. The center tick marks the median and whiskers reach the minimum and maximum. Hover for the sample size.</p><div id="comparison"></div></section><section><h2>One quarter, two measures</h2><p>Drag across the scatterplot to highlight a group of quarters. Double-click to clear the selection.</p><div class="axes"><label>Horizontal axis<select id="x"></select></label><label>Vertical axis<select id="y"></select></label></div><div id="scatter"></div></section><section id="methods"><h2>Sources &amp; reading notes</h2><dl><dt>Real GDP growth</dt><dd>Percent change from the same quarter one year earlier in BEA real GDP. <a href="https://fred.stlouisfed.org/series/GDPC1">GDPC1 ↗</a></dd><dt>Unemployment</dt><dd>Mean of three monthly BLS seasonally adjusted unemployment rates. <a href="https://fred.stlouisfed.org/series/UNRATE">UNRATE ↗</a></dd><dt>CPI inflation</dt><dd>Mean of three monthly year-over-year changes in the BLS seasonally adjusted all-items CPI-U. <a href="https://fred.stlouisfed.org/series/CPIAUCSL">CPIAUCSL ↗</a></dd><dt>Policy rate</dt><dd>Quarterly mean of monthly effective federal funds rates. Coverage begins in 1954 Q3. <a href="https://fred.stlouisfed.org/series/FEDFUNDS">FEDFUNDS ↗</a></dd></dl><p>Each quarter belongs to the president serving on its final day. Transition quarters can span administrations. The comparison includes only observed quarters within the selected window. Truman’s coverage starts in 1948 and the current administration’s coverage ends with the latest available quarter.</p><p>These descriptive comparisons cannot isolate policy effects. Presidents inherit economic conditions, monetary policy is set independently, and shocks cross term boundaries. Historical observations can be revised. In 2025 Q4, missing October observations leave the unemployment and CPI aggregates blank.</p><a href="data/history.md">Presidential and recession chronology sources ↗</a></section></main></body></html>
-
-
-
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>总统任期与美国经济｜1948—2026</title>
+  <meta name="description" content="以连续时间、任期画像和单项排名，比较1948年以来美国总统任内的经济表现、公众支持率与衰退经历。">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="stats.css">
+  <script defer src="vendor/vega.min.js"></script>
+  <script defer src="vendor/vega-lite.min.js"></script>
+  <script defer src="vendor/vega-embed.min.js"></script>
+  <script defer src="charts.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top">ECONOMIC RECORD</a>
+    <nav aria-label="页面导航"><a href="#timeline-section">历史走势</a><a href="#profiles-section">总统画像</a><a href="#ranking-section">指标排名</a></nav>
+  </header>
+  <main id="top">
+    <section class="hero">
+      <p class="eyebrow">美国 · 1948 Q1—2026 Q3</p>
+      <h1>总统任期与<br><em>美国经济</em></h1>
+      <p class="hero-copy">不同总统任内，增长、就业、物价、利率、公众认可与经济衰退呈现出哪些组合？</p>
+    </section>
+    <section id="timeline-section" class="chapter">
+      <div class="chapter-head"><div><span class="chapter-number">01</span><h2>历史是怎样展开的？</h2></div><p>四项宏观指标共享时间范围。蓝色与红色任期带分别代表民主党和共和党，灰色表示 NBER 衰退。</p></div>
+      <div id="president-strip" class="president-strip" aria-label="总统任期时间带"></div>
+      <div class="time-controls" aria-label="时间范围">
+        <label><span>起始季度</span><strong id="start-label"></strong><input id="start-range" type="range"></label>
+        <label><span>结束季度</span><strong id="end-label"></strong><input id="end-range" type="range"></label>
+        <button id="reset-time" type="button">恢复完整时期</button>
+      </div>
+      <p id="timeline-status" class="status" aria-live="polite"></p><div id="timeline" class="chart"></div>
+    </section>
+    <section id="profiles-section" class="chapter">
+      <div class="chapter-head"><div><span class="chapter-number">02</span><h2>任期内的季度表现如何分布？</h2></div><p>用标准箱线图比较总统任内各季度的分布，而不只比较一个平均数。平均值以菱形叠加，便于同时观察水平、波动与极端季度。</p></div>
+      <div class="filter-row">
+        <div class="profile-controls">
+          <div class="segmented" role="group" aria-label="按党派筛选">
+            <button class="party-button active" type="button" data-party="全部">全部</button>
+            <button class="party-button" type="button" data-party="民主党"><i class="party-dot democrat"></i>民主党</button>
+            <button class="party-button" type="button" data-party="共和党"><i class="party-dot republican"></i>共和党</button>
+          </div>
+          <label class="metric-control">箱线图指标<select id="profile-metric"></select></label>
+        </div>
+        <details class="president-picker"><summary id="president-picker-label">选择总统</summary><div class="picker-actions"><button id="select-visible" type="button">选择当前党派</button><button id="clear-presidents" type="button">清空</button></div><div id="president-options"></div></details>
+      </div>
+      <div class="profile-legend"><span><i class="party-dot democrat"></i>民主党</span><span><i class="party-dot republican"></i>共和党</span><span>箱体：第25—75百分位</span><span>中线：中位数</span><span>◆ 任期平均</span><span>○ 离群季度</span></div>
+      <p id="profile-note" class="status"></p><div id="profile-chart" class="chart statistical-chart"></div>
+    </section>
+    <section id="ranking-section" class="chapter">
+      <div class="chapter-head"><div><span class="chapter-number">03</span><h2>换一个指标，排名会怎样变化？</h2></div><p>排名沿用上方党派和总统筛选。切换指标后重新排序；支持率和衰退指标同时标注样本覆盖。</p></div>
+      <div class="ranking-controls"><label>排名指标<select id="ranking-metric"></select></label><label>排序方向<select id="ranking-direction"><option value="desc">数值高到低</option><option value="asc">数值低到高</option></select></label></div>
+      <p id="ranking-note" class="status"></p><div id="ranking" class="chart"></div>
+    </section>
+    <details class="methods">
+      <summary>数据来源、计算口径与解释边界</summary>
+      <div class="methods-grid">
+        <div><h3>经济指标</h3><p>实际 GDP 同比增长率由 BEA 的 GDPC1 计算。失业率、CPI 同比通胀率与有效联邦基金利率采用完整季度的月度平均。数据经 FRED 获取，历史值可能修订。</p></div>
+        <div><h3>公众支持率</h3><p>采用 Gallup 公布的全任期平均工作支持率。Donald Trump II 为截至 2025 年末的阶段平均，使用空心标记；其他支持率为已结束任期平均。</p></div>
+        <div><h3>经济衰退</h3><p>采用 NBER 月度衰退日期。衰退月份占比等于任内衰退月数除以已观察执政月数；新衰退频率为任内开始的衰退次数按每 48 个月折算。</p></div>
+        <div><h3>比较边界</h3><p>Truman 的经济覆盖从 1948 年开始，Donald Trump II 的经济数据截至 2026 Q3。总统会继承经济条件，国会、联储、全球事件和时间趋势也会影响结果。</p></div>
+      </div>
+      <p class="source-links"><a href="https://fred.stlouisfed.org/" target="_blank" rel="noreferrer">FRED</a><a href="https://news.gallup.com/interactives/507569/presidential-job-approval-center.aspx" target="_blank" rel="noreferrer">Gallup Presidential Job Approval Center</a><a href="https://www.nber.org/research/data/us-business-cycle-expansions-and-contractions" target="_blank" rel="noreferrer">NBER Business Cycle Dates</a><a href="data/history.md">任期日期说明</a></p>
+    </details>
+  </main>
+</body>
+</html>

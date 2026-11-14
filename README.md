@@ -1,28 +1,45 @@
-# The American Economy: Presidents, Policies & Economic Cycles
+# 总统任期与美国经济
 
-An interactive quarterly atlas of the United States since 1948. The four aligned charts place output, unemployment, prices and interest rates alongside presidential tenures and monthly NBER recessions. Use the distribution chart to compare the quarters observed in each administration. Use the scatterplot to explore whether two indicators moved together within a selected period.
+这是一个研究型交互可视化项目，覆盖 1948 Q1 至 2026 Q3。页面使用三层结构回答不同问题：连续时间图解释历史背景，箱线图比较总统任内季度分布，单项排名展示更换评价维度后排序如何变化。
 
-## Run locally
+## 指标与口径
 
-From the directory containing index.html, run `python -m http.server 8000` and visit http://localhost:8000/. The application reads local JSON. Vega, Vega-Lite and Vega-Embed are bundled under vendor, with their licenses. There is no build step or API key.
+- 实际 GDP 同比增长率由 FRED/BEA 的 GDPC1 计算，各有效季度等权平均。
+- 失业率使用 FRED/BLS 的 UNRATE 月度数据汇总为季度平均，再在总统任内对有效季度等权平均。
+- CPI 通胀率先由 CPIAUCSL 计算月度同比，再汇总为季度平均。
+- 有效联邦基金利率采用 FEDFUNDS 季度平均，1954 Q3 以前保持缺失。
+- 总统支持率采用 Gallup 公布的全任期平均工作支持率。Donald Trump II 的 41% 是截至 2025 年末的阶段平均。
+- 衰退月份采用 NBER 月度衰退日期。衰退月份占比使用已观察执政月份作分母。新衰退频率是任内开始的衰退次数按 48 个月折算。
 
-## Reading the data
+季度按季末在任总统归属。Truman 的经济覆盖从 1948 年开始，Donald Trump II 的经济覆盖截至 2026 Q3。不完整覆盖使用空心符号标记。
 
-- Real GDP growth equals 100 × (GDPC1 this quarter / GDPC1 four quarters earlier − 1). BEA publishes the level at a seasonally adjusted annual rate.
-- Unemployment is the arithmetic mean of three monthly BLS UNRATE observations.
-- CPI inflation is the mean of three monthly 100 × (CPIAUCSL / CPIAUCSL twelve months earlier − 1) values. UNRATE and CPIAUCSL are seasonally adjusted.
-- The effective federal funds rate is the mean of three monthly FEDFUNDS observations, in percent. There is no historical proxy before July 1954.
-- Three monthly observations are required for a quarterly mean. Missing values are excluded separately for each indicator. Scatterplots require both coordinates.
-- A point is drawn at the beginning of the quarter it represents. Its administration is determined on the quarter’s last day. Actual tenure boundaries and monthly recession boundaries are drawn at their calendar dates. See [historical sources](data/history.md).
-- Box edges are interpolated 25th and 75th percentiles, the tick is the median, and whiskers run from minimum to maximum. Each available quarter has equal weight. Hover to check counts, especially for truncated or short tenures.
-- Observed associations combine inherited conditions, global shocks, monetary policy and other influences. They cannot identify presidential policy effects.
+排名是单项数值排序。GDP 增长和支持率默认从高到低，失业率、通胀率、联邦基金利率与衰退指标默认从低到高。通胀和利率排序仅描述数值大小，不表示越低越好。页面不合成总分，也不作总统个人能力的因果判断。
 
-## Publish on GitHub Pages
+箱线图仅用于具有季度观测值的四项宏观指标。箱体表示第 25—75 百分位，中线为中位数，须线采用 Tukey 1.5×IQR 规则，空心圆表示离群季度，金色菱形表示任期内季度平均值。支持率和衰退指标只有任期汇总值，因此放在单项排名中，不伪装成季度分布。
 
-Put this directory’s contents at the root of a GitHub repository and push to main. Under Settings → Pages → Build and deployment, choose Deploy from a branch, main and / (root), then Save. Open the URL GitHub reports after the deployment succeeds.
+## 数据文件
 
-## Snapshot verification
+- `data/quarters.json` 保存 315 个季度的四项宏观指标。
+- `data/approval.json` 保存 Gallup 总统支持率平均值及完整性标记。
+- `data/history.json` 保存总统任期和 NBER 衰退区间。
+- `data/fred-export.zip` 保存生成季度数据所用的 FRED 原始快照。
 
-The 14 November 2026 snapshot contains 315 consecutive quarters from 1948 Q1 through 2026 Q3. The FRED export includes October 2026 monthly values, which belong to an unfinished quarter. GDP has 315 values, unemployment and inflation each have 314, and the funds rate has 289. October 2025 is missing for UNRATE and CPIAUCSL, leaving both 2025 Q4 aggregates blank. The last complete quarter has 2.066% GDP growth, 4.133% unemployment, 3.458% CPI inflation and a 3.670% effective funds rate.
+## 本地运行
 
-The [original FRED export](data/fred-export.zip) preserves the levels used for the calculations. [Download the same series from FRED](https://fred.stlouisfed.org/graph/fredgraph.csv?id=GDPC1,UNRATE,CPIAUCSL,FEDFUNDS). Later releases may revise past observations.
+在本目录运行 `python -m http.server 8000`，然后访问 `http://127.0.0.1:8000/`。Vega、Vega-Lite 和 Vega-Embed 已存放在 `vendor/`，无需构建步骤或 API 密钥。
+
+## 部署到 GitHub Pages
+
+1. 新建或打开目标 GitHub 仓库，把本目录内的 `index.html`、`style.css`、`stats.css`、`app.js`、`charts.js`、`data/` 与 `vendor/` 放在仓库根目录。
+2. 推送到默认分支（通常是 `main`）。
+3. 在仓库的 **Settings → Pages** 中，将 **Build and deployment** 设为 **Deploy from a branch**，分支选择 `main`，目录选择 `/ (root)`，然后保存。
+4. 等待 GitHub Pages 工作流完成，再访问设置页显示的网址。更新时覆盖同名文件并再次推送即可。
+
+`economic-atlas.html` 是便于提交或离线保存的单文件版本；GitHub Pages 应优先使用拆分文件版本，以便浏览器缓存和后续维护。
+
+## 来源
+
+- [FRED](https://fred.stlouisfed.org/)
+- [Gallup Presidential Job Approval Center](https://news.gallup.com/interactives/507569/presidential-job-approval-center.aspx)
+- [NBER Business Cycle Expansions and Contractions](https://www.nber.org/research/data/us-business-cycle-expansions-and-contractions)
+- [总统任期与衰退日期说明](data/history.md)

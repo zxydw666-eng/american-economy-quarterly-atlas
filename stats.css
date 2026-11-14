@@ -1,0 +1,28 @@
+.profile-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+#profile-note { display: none; }
+.chart { width: 100%; }
+
+.metric-control {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.statistical-chart {
+  min-height: 220px;
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  background: #091b28;
+}
+
+@media (max-width: 760px) {
+  .profile-controls {
+    align-items: stretch;
+  }
+}
