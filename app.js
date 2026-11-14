@@ -23,9 +23,28 @@ function buildAdminStats(rows,history,approvalData){
     return {admin:band.label,party:party(band.label),start:band.start,end:band.end,index,gdp:average('gdp'),unemployment:average('unemployment'),inflation:average('inflation'),rate:average('rate'),approval:approval?.average??null,approvalPartial:approval?.status==='partial',recessionShare:months?100*recessionMonths/months:null,recessionRate:months?48*newRecessions/months:null,newRecessions,recessionMonths,months,quarters:q.length,rateQuarters:q.filter(r=>Number.isFinite(r.rate)).length,partial:band.start<coverageStart||!band.end||band.end>coverageEnd};
   });
 }
+// Presidential Portraits, Library of Congress
+const PORTRAITS = {
+  "Harry S. Truman": "https://tile.loc.gov/storage-services/service/pnp/cph/3c10000/3c17000/3c17100/3c17122r.jpg",
+  "Dwight D. Eisenhower": "https://tile.loc.gov/storage-services/service/pnp/cph/3c10000/3c17000/3c17100/3c17123r.jpg",
+  "John F. Kennedy": "https://tile.loc.gov/storage-services/service/pnp/ppmsca/38600/38698r.jpg",
+  "Lyndon B. Johnson": "https://tile.loc.gov/storage-services/service/pnp/cph/3a50000/3a53000/3a53300/3a53305r.jpg",
+  "Richard Nixon": "https://tile.loc.gov/storage-services/service/pnp/cph/3a50000/3a53000/3a53300/3a53306r.jpg",
+  "Gerald Ford": "https://tile.loc.gov/storage-services/service/pnp/ppmsc/02800/02800r.jpg",
+  "Jimmy Carter": "https://tile.loc.gov/storage-services/service/pnp/cph/3b50000/3b52000/3b52000/3b52090r.jpg",
+  "Ronald Reagan": "https://tile.loc.gov/storage-services/service/pnp/cph/3a50000/3a53000/3a53300/3a53308r.jpg",
+  "George H. W. Bush": "https://tile.loc.gov/storage-services/service/pnp/cph/3b40000/3b46000/3b46100/3b46147r.jpg",
+  "Bill Clinton": "https://tile.loc.gov/storage-services/service/pnp/cph/3c00000/3c07000/3c07700/3c07700r.jpg",
+  "George W. Bush": "https://tile.loc.gov/storage-services/service/pnp/ppbd/00300/00371r.jpg",
+  "Barack Obama": "https://tile.loc.gov/storage-services/service/pnp/ppbd/00300/00358r.jpg",
+  "Donald Trump I": "https://tile.loc.gov/storage-services/service/pnp/ppbd/00600/00608r.jpg",
+  "Joe Biden": "https://tile.loc.gov/storage-services/service/pnp/ppbd/01200/01261r.jpg",
+  "Donald Trump II": "https://tile.loc.gov/storage-services/service/pnp/ppbd/11600/11614r.jpg"
+};
 function attachPortrait(container,admin,className=''){
   const fallback=document.createElement('span');fallback.className='portrait-fallback '+className;fallback.textContent=initials(admin);container.append(fallback);
-  const img=document.createElement('img');img.src='portraits/'+WIKI[admin]+'.jpg';img.alt=admin;img.className=className;img.onload=()=>fallback.replaceWith(img);img.onerror=()=>{img.onerror=null;fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+WIKI[admin]).then(r=>r.json()).then(data=>{if(data.thumbnail)img.src=data.thumbnail.source}).catch(()=>{})};
+  const img=document.createElement('img');img.alt=admin;img.className=className;img.onload=()=>fallback.replaceWith(img);img.onerror=()=>{img.onerror=null;fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+WIKI[admin]).then(r=>r.json()).then(data=>{if(data.thumbnail)img.src=data.thumbnail.source}).catch(()=>{})};
+  img.src=PORTRAITS[admin];
 }
 function renderStrip(history,stats,rows){const host=$('president-strip');host.replaceChildren();const firstYear=Number(rows[0].date.slice(0,4));const position=date=>{const d=new Date(date+'T00:00:00Z'),m=d.getUTCMonth(),q=Math.floor(m/3),a=Date.UTC(d.getUTCFullYear(),q*3,1),b=Date.UTC(d.getUTCFullYear(),q*3+3,1);return Math.max(0,Math.min(rows.length,(d.getUTCFullYear()-firstYear)*4+q+(d-a)/(b-a)))};for(const band of history.bands){const stat=stats.find(s=>s.admin===band.label),tile=document.createElement('div'),left=position(band.start),right=band.end?position(band.end):rows.length;tile.className='president-tile';tile.dataset.left=left;tile.dataset.right=right;tile.style.left=100*left/rows.length+'%';tile.style.width=100*(right-left)/rows.length+'%';tile.style.setProperty('--party',stat.party==='民主党'?'var(--dem)':'var(--rep)');tile.title=band.label+' · '+stat.party+' · '+band.start+'—'+(band.end||'至今');attachPortrait(tile,band.label);const caption=document.createElement('small');caption.innerHTML='<b>'+band.label+'</b><br><span>'+stat.party+'</span>';tile.append(caption);host.append(tile)}}
 async function init(){
